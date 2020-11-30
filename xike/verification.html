@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>设备较验</title>
+</head>
+<style>
+  .nav {
+    /* background: red; */
+    list-style: none;
+    background-color: #98f5ff;
+    display: flex;
+    justify-content: space-around;
+    margin: 1rem 0;
+    /* padding: 1rem; */
+  }
+
+  .nav div {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 25%;
+    height: 3rem;
+    background: #98f5ff;
+  }
+
+  table {
+    margin-top: 2rem;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  table thead tr {
+    background: #98f5ff;
+    height: 30px;
+  }
+
+  table tbody {
+    text-align: center;
+  }
+</style>
+
+<body>
+  <div>
+    <div class="nav">
+      <div>血压</div>
+      <div>血糖</div>
+      <div>尿酸</div>
+      <div>血酮</div>
+    </div>
+    <span>SN码</span>
+    <input type="text" placeholder="请输入SN码" value="" class="inp" />
+    <button id="btn">扫码</button>
+    <div id="tabMian"></div>
+  </div>
+  <script src="https://cdn.bootcss.com/qs/6.7.0/qs.min.js"></script>
+  <script src="https://cdn.bootcss.com/blueimp-md5/1.1.0/js/md5.min.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+  <script>
+    function formDate() {
+      var d = new Date(),
+        currentDate = new Date(),
+        tmpHours = currentDate.getHours();
+      var time_zone = -d.getTimezoneOffset() / 60;
+      if (time_zone < 0) {
+        time_zone = Math.abs(time_zone) + 8;
+        currentDate.setHours(tmpHours + time_zone);
+      } else {
+        time_zone -= 8;
+        currentDate.setHours(tmpHours - time_zone);
+      }
+      var myDate2 = currentDate;
+      var monthT, DataT;
+      if (myDate2.getMonth() < 9) {
+        monthT = "0" + (myDate2.getMonth() + 1);
+      } else {
+        monthT = myDate2.getMonth() + 1;
+      }
+      if (myDate2.getDate() < 10) {
+        DataT = "0" + myDate2.getDate();
+      } else {
+        DataT = myDate2.getDate();
+      }
+      var thisDate2 = myDate2.getFullYear() + "-" + monthT + "-" + DataT;
+      return thisDate2;
+    }
+    let formData_ = formDate();
+    let md5_ = md5(md5("yc1805_jz_gluce") + formData_);
+    let inp = document.querySelectorAll(".inp")[0];
+    let btn = document.getElementById("btn");
+    let data = null;
+    btn.onclick = () => {
+      let qs = Qs;
+      let data = {
+        ycgl_key: md5_,
+        deanid: 175,
+      };
+      this.axios
+        .post(
+          // "https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade/dataController/scanQRCode",
+          "http://192.168.2.22:8080/accurate_sugar_control_api/dataController/scanQRCode",
+          //http://192.168.2.22:8080/gout_recovery_station_api
+          qs.stringify(data)
+        )
+        .then((res) => {
+          console.log(res)
+          wx.config({
+            debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+            appId: res.data.appid, // 必填，公众号的唯一标识
+            timestamp: res.data.timestamp, // 必填，生成签名的时间戳
+            nonceStr: res.data.noncestr, // 必填，生成签名的随机串
+            signature: res.data.signature, // 必填，签名
+            jsApiList: ["scanQRCode"], // 必填，需要使用的JS接口列表
+          });
+          wx.ready(() => {
+            console.log("成功了");
+          });
+          wx.error(function (res) {
+            console.log("太难了");
+          });
+          wx.scanQRCode({
+            needResult: 1, // 默认为0，扫描结果由微信处理，1则直接返回扫描结果，
+            scanType: ["qrCode", "barCode"], // 可以指定扫二维码还是一维码，默认二者都有
+            success: function (res) {
+              let data = res.resultStr;
+              inp.value = data.substring(data.length-12,data.length); // 当needResult 为 1 时，扫码返回的结果
+            },
+          });
+        });
+    };
+    function tabList(headDatas, datas) {
+      tabMian.innerHTML = "";
+      let table = document.createElement("table");
+      tabMian.appendChild(table);
+      table.border = "1px";
+      let thead = document.createElement("thead");
+      table.appendChild(thead);
+      let tr = document.createElement("tr");
+      thead.appendChild(tr);
+      for (var i = 0; i < headDatas.length; i++) {
+        let th = document.createElement("th");
+        tr.appendChild(th);
+        th.innerText = headDatas[i];
+      }
+      let tbody = document.createElement("tbody");
+      // tbody.style.textAlign = "center";
+      table.appendChild(tbody);
+      for (let i = 0; i < datas.length; i++) {
+        let data = datas[i];
+        let tr = document.createElement("tr");
+        tbody.appendChild(tr);
+        /* 遍历data */
+        for (var key in data) {
+          let td = document.createElement("td");
+          tr.appendChild(td);
+          td.innerText = data[key];
+        }
+      }
+    }
+    let tabMian = document.getElementById("tabMian");
+    let bubble = document.querySelectorAll(".nav")[0];
+    bubble.onclick = (e) => {
+      if (e.target.nodeName === "DIV") {
+        if (e.target.innerHTML == "血压") {
+          let headDatas = ["动脉平均压", "脉率", "舒张压", "收缩压", "测试时间"];
+          let datas = [
+          ];
+          let rData = {
+            dn: inp.value,
+            ycgl_key: md5_,
+            data_type: "bp",
+          }
+          function get(rData) {
+            let qs = Qs;
+            this.axios
+              .post(
+                // "https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade/Manage/getAllTestDataByDnOrType",
+                "http://192.168.2.22:8080/accurate_sugar_control_api/Manage/getAllTestDataByDnOrType",
+                qs.stringify(rData)
+              ).then((res) => {
+                console.log(res)
+                if (res.data.code == 0) {
+                  res.data.data.forEach(item => {
+                    datas.push({
+                      param_press_map: item.param_press_map,
+                      param_press_heartrate: item.param_press_heartrate,
+                      param_press_diastolic: item.param_press_diastolic,
+                      param_press_systolic: item.param_press_systolic,
+                      param_addtime: item.param_addtime,
+                    })
+                  });
+                } else {
+                  // that.$message.error(res.data.msg);
+                  datas.push({
+                    param_press_map: "暂无数据",
+                    param_press_heartrate: "暂无数据",
+                    param_press_diastolic: "暂无数据",
+                    param_press_systolic: "暂无数据",
+                    param_addtime: "暂无数据"
+                  })
+                }
+                this.tabList(headDatas, datas);
+              });
+          };
+          get(rData);
+        } else if (e.target.innerHTML == "血糖") {
+          let headDatas = ["血糖校正码取值为", "血糖测量值", "血糖测量时间", "测试时间"];
+          let datas = [];
+          let rData = {
+            dn: inp.value,
+            ycgl_key: md5_,
+            data_type: "bg",
+          }
+          function get(rData) {
+            let qs = Qs;
+            this.axios
+              .post(
+                // "https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade/Manage/getAllTestDataByDnOrType",
+                "http://192.168.2.22:8080/accurate_sugar_control_api/Manage/getAllTestDataByDnOrType",
+                qs.stringify(rData)
+              ).then((res) => {
+                if (res.data.code == 0) {
+                  res.data.data.forEach(item => {
+                    datas.push({
+                      param_gl_glucoseCode: item.param_gl_glucoseCode,
+                      param_gl_glucose: item.param_gl_glucose,
+                      param_gl_glucosePeriod: item.param_gl_glucosePeriod,
+                      param_addtime: item.param_addtime,
+                    })
+                  });
+
+                } else {
+                  datas.push({
+                    param_gl_glucoseCode: "暂无数据",
+                    param_gl_glucose: "暂无数据",
+                    param_gl_glucosePeriod: "暂无数据",
+                    param_addtime: "暂无数据"
+                  })
+                }
+                this.tabList(headDatas, datas);
+              });
+          };
+          get(rData);
+        } else if (e.target.innerHTML == "尿酸") {
+          let headDatas = ["血尿酸检测值", "血尿酸检测码", "血尿酸测量时间", "测试时间"];
+          let datas = [];
+          let rData = {
+            dn: inp.value,
+            ycgl_key: md5_,
+            data_type: "bua",
+          }
+          function get(rData) {
+            let qs = Qs;
+            this.axios
+              .post(
+                // "https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade/Manage/getAllTestDataByDnOrType",
+                "http://192.168.2.22:8080/accurate_sugar_control_api/Manage/getAllTestDataByDnOrType",
+                qs.stringify(rData)
+              ).then((res) => {
+                if (res.data.code == 0) {
+                  res.data.data.forEach(item => {
+                    if (item.param_bua_BUAPeriod == "null") {
+                      item.param_bua_BUAPeriod = " -- "
+                    }
+                    datas.push({
+                      param_bua_BUA: item.param_bua_BUA,
+                      param_bua_BUACode: item.param_bua_BUACode,
+                      param_bua_BUAPeriod: item.param_bua_BUAPeriod,
+                      param_addtime: item.param_addtime,
+                    })
+                  });
+                } else {
+                  datas.push({
+                    param_bua_BUA: "暂无数据",
+                    param_bua_BUACode: "暂无数据",
+                    param_bua_BUAPeriod: "暂无数据",
+                    param_addtime: "暂无数据"
+                  })
+                }
+                this.tabList(headDatas, datas);
+              });
+          };
+          get(rData);
+        }
+        // else if (e.target.innerHTML == "体温") {
+        //   let headDatas = ["体温测量值", "体温计 DN 号"];
+        //   let datas = [];
+        //   let rData = {
+        //     dn: inp.value,
+        //     ycgl_key: md5_,
+        //     data_type: "temp",
+        //   }
+        //   function get(rData) {
+        //     let qs = Qs;
+        //     this.axios
+        //       .post(
+        //         "https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade/Manage/getAllTestDataByDnOrType",
+        //         qs.stringify(rData)
+        //       ).then((res) => {
+        //         console.log(res)
+        //         if (res.data.code == 0) {
+        //           res.data.data.forEach(item => {
+        //             datas.push({
+        //               param_tem_temperature: item.param_tem_temperature,
+        //               param_tem_sourceDN: item.param_tem_sourceDN,
+        //             })
+        //           });
+        //         } else {
+        //           // that.$message.error(res.data.msg);
+        //           alert(res.data.msg)
+        //         }
+        //         this.tabList(headDatas, datas);
+        //       });
+        //   };
+        //   get(rData);
+        // } 
+        else if (e.target.innerHTML == "血酮") {
+          let headDatas = ["血酮体测量值", "血酮体校正码", "血酮体测量时间", "测试时间"];
+          let datas = [];
+          let rData = {
+            dn: inp.value,
+            ycgl_key: md5_,
+            data_type: "bkb",
+          }
+          function get(rData) {
+            let qs = Qs;
+            this.axios
+              .post(
+                // "https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade/Manage/getAllTestDataByDnOrType",
+                "http://192.168.2.22:8080/accurate_sugar_control_api/Manage/getAllTestDataByDnOrType",
+                qs.stringify(rData)
+              ).then((res) => {
+                console.log(res)
+                if (res.data.code == 0) {
+                  res.data.data.forEach(item => {
+                    if (item.param_bk_BKBPeriod == "null") {
+                      item.param_bk_BKBPeriod = " -- "
+                    }
+                    datas.push({
+                      param_bk_BKB: item.param_bk_BKB,
+                      param_bk_BKBCode: item.param_bk_BKBCode,
+                      param_bk_BKBPeriod: item.param_bk_BKBPeriod,
+                      param_addtime: item.param_addtime,
+                    })
+                  });
+                } else {
+                  datas.push({
+                    param_bk_BKB: "暂无数据",
+                    param_bk_BKBCode: "暂无数据",
+                    param_bk_BKBPeriod: "暂无数据",
+                    param_addtime: "暂无数据"
+                  })
+                }
+                this.tabList(headDatas, datas);
+              });
+          };
+          get(rData);
+        }
+      }
+    };
+  </script>
+</body>
+
+</html>

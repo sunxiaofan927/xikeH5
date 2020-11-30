@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width = device-width, initial-scale = 1.0, maximum-scale = 1.0, user-scalable = 0" />
+		<!-- <link rel="stylesheet" type="text/css" href="css/indexStyle.css"/>
+		<script type="text/javascript" src="js/fontsize.js"></script> -->
+		<title>H5跳转小程序</title>
+	</head>
+	<body style="text-aligin:center;">
+		<wx-open-launch-weapp id="launch-btn" username="gh_9b2c54bbd021" path="/pages/home/index.html">
+			<template>
+				<style>
+					.main {
+						height: 100%;
+						display: flex;
+						flex-direction: column;
+						align-items: center;
+					}
+					
+					.logImg {
+						width: 1.73rem;
+						height: auto;
+						margin-bottom: 0.45rem;
+					}
+					
+					.txtImg {
+						width: 100%;
+						height: auto;
+						margin-bottom: 0.75rem;
+					}
+					
+					.conImg {
+						width: 100%;
+						height: auto;
+						/* margin-bottom: 25px; */
+					}
+					
+					.btn {
+						width: 60%;
+						height: auto;
+						border: 0;
+						background-color: transparent;
+					}
+					
+					img {
+						display: block;
+						width: 100%;
+						height: 100%;
+					}
+				</style>
+				<div class="main">
+					<!-- logImg -->
+					<div class="logImg">
+						<img src="http://bbx.yicheng120.com/HKFileAPI/iconlogo/16032481154131603248115157.jpeg">
+					</div>
+					<!-- txtImg -->
+					<div class="txtImg">
+						<img src="http://bbx.yicheng120.com/HKFileAPI/iconlogo/16032481009811603248100466.png">
+					</div>
+					<!-- conImg -->
+					<div class="conImg">
+						<img src="http://bbx.yicheng120.com/HKFileAPI/iconlogo/16032480675901603248067544.png">
+					</div>
+					<!-- button -->
+					<button class="btn">
+						<img src="http://bbx.yicheng120.com/HKFileAPI/iconlogo/16032618736011603261873378.gif" alt="but">
+					</button>
+				</div>
+			</template>
+		</wx-open-launch-weapp>
+		<script src="js/md5.js"></script>
+		<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script> <!-- 至少必须是1.6版本 -->
+		<script>
+			$(function() {
+				// 获取日期
+				function getNowFormatDate() {
+					let date = new Date();
+					let seperator1 = "-";
+					let year = date.getFullYear();
+					let month = date.getMonth() + 1;
+					let strDate = date.getDate();
+					if (month >= 1 && month <= 9) {
+						month = "0" + month;
+					}
+					if (strDate >= 0 && strDate <= 9) {
+						strDate = "0" + strDate;
+					}
+					let currentdate = year + seperator1 + month + seperator1 + strDate;
+					return currentdate;
+				}
+				// config 的参数以及签名=  https://mapi.yicheng120.com/accurate_sugar_control_api_upgrade
+				function myFunction() {
+					$.ajax({
+						url: "https://mail.beijingyicheng.com.cn/accurate_sugar_control_api/RoutineUserController/H5ToApplets.do",
+						type: "POST",
+						data: {
+							ycgl_key: md5(md5("yc1805_jz_gluce") + getNowFormatDate()), //医院唯一id
+							deanid: '1', //唯一识别
+						},
+						success: function(res) {
+							if (res.code == 0) {
+								wx.config({
+									debug: false,
+									appId: res.appid,
+									timestamp: res.timestamp,
+									nonceStr: res.noncestr,
+									signature: res.signature,
+									jsApiList: ["startRecord", "stopRecord", "onVoiceRecordEnd", "playVoice", "pauseVoice", "stopVoice",
+										"onVoicePlayEnd", "uploadVoice", "downloadVoice", "chooseImage", "previewImage", "uploadImage",
+										"downloadImage", "translateVoice", "getNetworkType", "openLocation", "getLocation"
+									], //必须要不调用小程序标签渲染不出来
+									openTagList: ['wx-open-launch-weapp'] //必须必须要不调用小程序标签渲染不出来
+								});
+							}
+						}
+					})
+				}
+				myFunction()
+				var url = location.href;
+				var functions = myFunction();
+				$.get("mapi.yicheng120.com/wechat/jssdk/config", {
+					"functions": functions
+				}, function(response) {
+					if (response.status == 0) {
+						var info = response.data;
+						wx.config({
+							debug: false,
+							appId: info.appId,
+							timestamp: info.timestamp,
+							nonceStr: info.nonceStr,
+							signature: info.signature,
+							jsApiList: info.jsApiList,
+							openTagList: ['wx-open-launch-weapp'] //这里直接添加，什么都不用管
+						});
+					}
+				});
+
+				//=== 获取 config 的参数以及签名=== end
+				var btn = document.getElementById('launch-btn');
+				btn.addEventListener('launch', function(e) {
+					console.log('success');
+				});
+				btn.addEventListener('error', function(e) {
+					console.log('fail', e.detail);
+				});
+
+			});
+		</script>
+	</body>
+</html>
